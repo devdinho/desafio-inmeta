@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
 
@@ -16,18 +17,67 @@ export class DocumentRequestService {
   @InjectRepository(DocumentRequest)
   private readonly documentRequestRepository: Repository<DocumentRequest>;
 
+  @InjectRepository(DocumentType)
+  private readonly documentTypeRepository: Repository<DocumentType>;
+
   @InjectRepository(Employee)
   private readonly employeeRepository: Repository<Employee>;
 
   async create(
     createDocumentRequestDto: CreateDocumentRequestDto,
-  ): Promise<DocumentRequest> {
-    const documentRequest: DocumentRequest = new DocumentRequest();
-    documentRequest.employee = createDocumentRequestDto.employee;
-    documentRequest.documentType = createDocumentRequestDto.documentType;
+  ): Promise<DocumentRequest[]> {
 
-    return await this.documentRequestRepository.save(documentRequest);
+    let { employee, documentType } = createDocumentRequestDto;
+
+    const employeeId = typeof employee === 'object' ? employee.id : employee;
+
+    const employeeEntity = await this.employeeRepository.findOne({
+      where: { id: employeeId },
+    });
+
+    if (!employeeEntity) {
+      throw new NotFoundException('Employee not found');
+    }
+
+    const documentTypeIds = Array.isArray(documentType)
+      ? documentType.map(dt => (typeof dt === 'object' ? dt.id : dt))
+      : [typeof documentType === 'object' ? documentType.id : documentType];
+
+    const createdRequests: DocumentRequest[] = [];
+
+    for (let typeId of documentTypeIds) {
+      let docType = await this.documentTypeRepository.findOne({
+        where: { id: typeId },
+      });
+
+      if (!docType) {
+        throw new NotFoundException(`DocumentType ${typeId} not found`);
+      }
+
+      let exists = await this.documentRequestRepository.findOne({
+        where: {
+          employee: { id: employeeId },
+          documentType: { id: typeId },
+        },
+      });
+
+      if (exists) {
+        throw new ConflictException(
+          `A document request for employee ${employeeEntity.name} and document type ${exists.documentType.name} already exists.`,
+        );
+      }
+
+      const request = new DocumentRequest();
+      request.employee = employeeEntity;
+      request.documentType = docType;
+
+      const saved = await this.documentRequestRepository.save(request);
+      createdRequests.push(saved);
+    }
+
+    return createdRequests;
   }
+
 
   findAll(): Promise<DocumentRequest[]> {
     return this.documentRequestRepository.find();
@@ -58,7 +108,7 @@ export class DocumentRequestService {
     if (updateDocumentRequestDto.approved && !documentRequest.approvedAt) {
       documentRequest.approvedAt = new Date();
     }
-    
+
     documentRequest.documentUrl =
       updateDocumentRequestDto.documentUrl ?? documentRequest.documentUrl;
 
@@ -83,6 +133,13 @@ export class DocumentTypeService {
   async createType(
     createDocumentTypeDto: CreateDocumentTypeDto,
   ): Promise<DocumentType> {
+    const existingType = await this.documentTypeRepository.findOne({
+      where: { name: createDocumentTypeDto.name },
+    });
+    if (existingType) {
+      throw new ConflictException('A document type with this name already exists.');
+    }
+
     const documentType = this.documentTypeRepository.create({
       name: createDocumentTypeDto.name,
       description: createDocumentTypeDto.description ?? null,
@@ -113,10 +170,31 @@ export class DocumentTypeService {
     return await this.documentTypeRepository.save(documentType);
   }
 
-  async removeType(id: number): Promise<DeleteResult> {
-    const documentType = await this.documentTypeRepository.findOneBy({ id });
-    if (!documentType) throw new Error('Document Type not found');
-    documentType.id = id;
-    return await this.documentTypeRepository.delete(documentType.id);
+  async removeType(id: number) {
+    const documentType = await this.documentTypeRepository.findOne({ where: { id } });
+
+    if (!documentType) {
+      throw new NotFoundException('Document type not found');
+    }
+
+    try {
+      await this.documentTypeRepository.delete(id);
+
+      return {
+        detail: 'Document Type deleted successfully',
+        status: 204,
+      };
+
+    } catch (error) {
+      // Violação de FK
+      if (error.code === '23503') {
+        throw new ConflictException(
+          'Can\'t delete: there are requests linked to this document type.',
+        );
+      }
+
+      // Other error
+      throw new InternalServerErrorException('Error deleting document type.');
+    }
   }
 }

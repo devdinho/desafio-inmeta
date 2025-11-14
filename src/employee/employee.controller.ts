@@ -9,35 +9,56 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { ResponseEmployeeDto } from './dto/response-employee.dto';
 
 @Controller('employee')
 export class EmployeeController {
   constructor(private readonly employeeService: EmployeeService) {}
 
   @Post()
-  create(@Body() createEmployeeDto: CreateEmployeeDto) {
-    return this.employeeService.create(createEmployeeDto);
+  async create(
+    @Body() createEmployeeDto: CreateEmployeeDto
+  ): Promise<ResponseEmployeeDto> {
+    const employee = await this.employeeService.create(createEmployeeDto);
+
+    return plainToInstance(ResponseEmployeeDto, employee, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Get()
-  findAll() {
-    return this.employeeService.findAll();
+  async findAll(): Promise<ResponseEmployeeDto[]> {
+    const employees = await this.employeeService.findAll();
+
+    return employees.map(employee =>
+      plainToInstance(ResponseEmployeeDto, employee, {
+        excludeExtraneousValues: true,
+      }),
+    );
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.employeeService.findOne(+id);
+  async findOne(@Param('id') id: string): Promise<ResponseEmployeeDto> {
+    const employee = await this.employeeService.findOne(+id);
+
+    return plainToInstance(ResponseEmployeeDto, employee, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateEmployeeDto: UpdateEmployeeDto,
-  ) {
-    return this.employeeService.update(+id, updateEmployeeDto);
+  ): Promise<ResponseEmployeeDto> {
+    const employee = await this.employeeService.update(+id, updateEmployeeDto);
+    return plainToInstance(ResponseEmployeeDto, employee, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Delete(':id')

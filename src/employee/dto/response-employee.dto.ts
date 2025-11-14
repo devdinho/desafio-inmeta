@@ -1,9 +1,14 @@
 import { IsNotEmpty, IsString, Matches, MinLength, ValidateNested } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { CreateUserDto } from '../../user/dto/create-user.dto';
+import { Expose, Type } from 'class-transformer';
+import { ResponseUserDto } from '../../user/dto/response-user.dto';
 
-export class CreateEmployeeDto {
+export class ResponseEmployeeDto {
+
+  @Expose()
+  id: number;
+
+  @Expose()
   @IsString()
   @IsNotEmpty()
   @MinLength(3, { message: 'Name must be at least 3 characters long' })
@@ -14,20 +19,22 @@ export class CreateEmployeeDto {
   })
   name: string;
 
+  @Expose()
   @IsNotEmpty()
   @ValidateNested()
-  @Type(() => CreateUserDto)
+  @Type(() => ResponseUserDto)
   @ApiProperty({
-    type: CreateUserDto,
+    type: ResponseUserDto,
     example: {
       email: 'john.doe@example.com',
-      username: 'johndoe',
       password: 'securePassword123',
+      username: 'johndoe',
     },
     description: 'User data for the associated user',
   })
-  user: CreateUserDto;
+  user: ResponseUserDto;
 
+  @Expose()
   @IsNotEmpty()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'HiredAt must be a valid date in the format YYYY-MM-DD',

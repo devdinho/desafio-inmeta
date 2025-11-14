@@ -1,31 +1,31 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { OneToOne, JoinColumn } from 'typeorm';
+import { ManyToOne, JoinColumn, Index } from 'typeorm';
 
 import { Employee } from '../../employee/entities/employee.entity';
 import { DocumentType } from './document-type.entity';
 
 @Entity()
+@Index(['employee', 'documentType'], { unique: true })
 export class DocumentRequest {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => Employee, { eager: true })
-  @JoinColumn()
+  @ManyToOne(() => Employee, (employee) => employee.documentRequests, { eager: true })
   employee: Employee;
 
-  @OneToOne(() => DocumentType, { eager: true })
-  @JoinColumn()
+  @ManyToOne(() => DocumentType, (documentType) => documentType.documentRequests, { eager: true })
   documentType: DocumentType;
+
 
   @Column({ type: 'boolean', default: false })
   approved: boolean;
 
-  @OneToOne(() => Employee, { eager: true })
+  @ManyToOne(() => Employee, (approvedBy) => approvedBy.approvedDocumentRequests, { eager: true })
   @JoinColumn()
   approvedBy: Employee;
 
-  @Column({ type: 'date', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   approvedAt: Date;
 
   @Column({ type: 'varchar', length: 500, nullable: true })

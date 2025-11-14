@@ -7,9 +7,11 @@ import {
   OneToOne,
   JoinColumn,
   RelationId,
+  OneToMany,
 } from 'typeorm';
 
 import { User } from '../../user/entities/user.entity';
+import { DocumentRequest } from 'src/document/entities/document-request.entity';
 
 @Entity()
 export class Employee {
@@ -34,4 +36,11 @@ export class Employee {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => DocumentRequest, (dr) => dr.employee)
+  documentRequests: DocumentRequest[];
+
+  @OneToMany(() => DocumentRequest, (dr) => dr.approvedBy)
+  approvedDocumentRequests: DocumentRequest[];
+
 }

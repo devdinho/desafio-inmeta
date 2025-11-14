@@ -14,12 +14,15 @@ import {
   DocumentTypeService,
 } from './document.service';
 
+import { ApiTags } from '@nestjs/swagger';
+
 import { CreateDocumentRequestDto } from './dto/create-document-request.dto';
 import { UpdateDocumentRequestDto } from './dto/update-document-request.dto';
 
 import { CreateDocumentTypeDto } from './dto/create-document-type.dto';
 import { UpdateDocumentTypeDto } from './dto/update-document-type.dto';
 
+@ApiTags('Document Request')
 @Controller('document-request')
 export class DocumentRequestController {
   constructor(private readonly documentService: DocumentRequestService) {}
@@ -54,6 +57,7 @@ export class DocumentRequestController {
   }
 }
 
+@ApiTags('Document Type')
 @Controller('document-type')
 export class DocumentTypeController {
   constructor(private readonly documentService: DocumentTypeService) {}

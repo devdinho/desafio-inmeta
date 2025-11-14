@@ -4,7 +4,9 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { DocumentRequest } from './document-request.entity';
 
 @Entity()
 export class DocumentType {
@@ -22,4 +24,7 @@ export class DocumentType {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => DocumentRequest, (dr) => dr.documentType)
+  documentRequests: DocumentRequest[];
 }
