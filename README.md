@@ -135,7 +135,7 @@ curl -X POST http://localhost:3014/document-request/42/upload \
 - O repositório contém `Dockerfile` e `docker-compose.yml`. Para subir com Docker Compose (ajuste o `.env`/variáveis):
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 **Rodando testes**
