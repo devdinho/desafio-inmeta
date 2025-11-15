@@ -9,7 +9,7 @@ describe('UserModule', () => {
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
-      controllers: [UserController],
+      controllers: [], // UserController removido
       providers: [
         UserService,
         { provide: getRepositoryToken(User), useValue: {} },

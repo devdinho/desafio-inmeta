@@ -27,6 +27,7 @@ describe('DocumentRequestService (unit)', () => {
       save: jest.fn(),
       find: jest.fn(),
       delete: jest.fn(),
+      createQueryBuilder: jest.fn(),
     };
 
     mockDocTypeRepo = {
@@ -149,6 +150,145 @@ describe('DocumentRequestService (unit)', () => {
     it('remove throws when missing', async () => {
       mockDocReqRepo.findOneBy = jest.fn().mockResolvedValue(null);
       await expect(service.remove(11)).rejects.toThrow(Error);
+    });
+  });
+
+  describe('findPending', () => {
+    it('returns paginated pending requests without filters', async () => {
+      const mockQb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(5),
+        getMany: jest.fn().mockResolvedValue([{ id: 1 }, { id: 2 }]),
+      };
+      mockDocReqRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQb);
+
+      const result = await service.findPending({});
+
+      expect(mockQb.where).toHaveBeenCalledWith('dr.documentUrl IS NULL');
+      expect(result.meta).toEqual({ total: 5, page: 1, limit: 20 });
+      expect(result.data).toHaveLength(2);
+    });
+
+    it('applies employeeId filter when provided', async () => {
+      const mockQb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(2),
+        getMany: jest.fn().mockResolvedValue([{ id: 3 }]),
+      };
+      mockDocReqRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQb);
+
+      const result = await service.findPending({ employeeId: 10 });
+
+      expect(mockQb.andWhere).toHaveBeenCalledWith('employee.id = :employeeId', { employeeId: 10 });
+      expect(result.data).toHaveLength(1);
+    });
+
+    it('applies documentTypeId filter when provided', async () => {
+      const mockQb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(3),
+        getMany: jest.fn().mockResolvedValue([{ id: 4 }, { id: 5 }]),
+      };
+      mockDocReqRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQb);
+
+      const result = await service.findPending({ documentTypeId: 7 });
+
+      expect(mockQb.andWhere).toHaveBeenCalledWith('documentType.id = :documentTypeId', { documentTypeId: 7 });
+      expect(result.meta.total).toBe(3);
+    });
+
+    it('handles pagination correctly', async () => {
+      const mockQb = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getCount: jest.fn().mockResolvedValue(50),
+        getMany: jest.fn().mockResolvedValue([]),
+      };
+      mockDocReqRepo.createQueryBuilder = jest.fn().mockReturnValue(mockQb);
+
+      await service.findPending({ page: 2, limit: 10 });
+
+      expect(mockQb.skip).toHaveBeenCalledWith(10); // (2-1) * 10
+      expect(mockQb.take).toHaveBeenCalledWith(10);
+    });
+  });
+
+  describe('getEmployeeDocumentStatus', () => {
+    it('returns document status for existing employee', async () => {
+      const employee = { id: 1, name: 'John Doe' };
+      const requests = [
+        {
+          id: 10,
+          documentType: { id: 2, name: 'Resume' },
+          documentUrl: 'https://example.com/resume.pdf',
+          approved: true,
+          uploadedAt: new Date(),
+          approvedAt: new Date(),
+        },
+        {
+          id: 11,
+          documentType: { id: 3, name: 'ID Card' },
+          documentUrl: 'https://example.com/id.pdf',
+          approved: false,
+          uploadedAt: new Date(),
+          approvedAt: null,
+        },
+        {
+          id: 12,
+          documentType: { id: 4, name: 'Diploma' },
+          documentUrl: null,
+          approved: false,
+          uploadedAt: null,
+          approvedAt: null,
+        },
+      ];
+
+      mockEmployeeRepo.findOne = jest.fn().mockResolvedValue(employee);
+      mockDocReqRepo.find = jest.fn().mockResolvedValue(requests);
+
+      const result = await service.getEmployeeDocumentStatus(1);
+
+      expect(result.employee).toEqual({ id: 1, name: 'John Doe' });
+      expect(result.documents).toHaveLength(3);
+      expect(result.documents[0].status).toBe('approved');
+      expect(result.documents[1].status).toBe('sent');
+      expect(result.documents[2].status).toBe('pending');
+    });
+
+    it('throws NotFoundException when employee does not exist', async () => {
+      mockEmployeeRepo.findOne = jest.fn().mockResolvedValue(null);
+
+      await expect(service.getEmployeeDocumentStatus(999)).rejects.toThrow(NotFoundException);
+    });
+
+    it('returns empty documents array when employee has no requests', async () => {
+      const employee = { id: 2, name: 'Jane Smith' };
+      mockEmployeeRepo.findOne = jest.fn().mockResolvedValue(employee);
+      mockDocReqRepo.find = jest.fn().mockResolvedValue([]);
+
+      const result = await service.getEmployeeDocumentStatus(2);
+
+      expect(result.employee).toEqual({ id: 2, name: 'Jane Smith' });
+      expect(result.documents).toEqual([]);
     });
   });
 });

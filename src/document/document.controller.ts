@@ -21,7 +21,9 @@ import {
 } from './document.service';
 import { UploadService } from '../upload/upload.service';
 
-import { ApiTags, ApiConsumes, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiConsumes, ApiBody, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiQuery } from '@nestjs/swagger';
+import { Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
@@ -52,6 +54,25 @@ import { UpdateDocumentTypeDto } from './dto/update-document-type.dto';
 @ApiTags('Document Request')
 @Controller('document-request')
 export class DocumentRequestController {
+  @Get('pending')
+  @ApiBearerAuth()
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'employeeId', required: false })
+  @ApiQuery({ name: 'documentTypeId', required: false })
+  async pending(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('employeeId') employeeId?: string,
+    @Query('documentTypeId') documentTypeId?: string,
+  ) {
+    const opts: any = {};
+    if (page) opts.page = parseInt(page, 10);
+    if (limit) opts.limit = parseInt(limit, 10);
+    if (employeeId) opts.employeeId = parseInt(employeeId, 10);
+    if (documentTypeId) opts.documentTypeId = parseInt(documentTypeId, 10);
+    return this.documentService.findPending(opts);
+  }
   @Get()
   @ApiBearerAuth()
   findAll() {
@@ -59,6 +80,7 @@ export class DocumentRequestController {
   }
 
   @Get(':id')
+  @ApiBearerAuth()
   findOne(@Param('id') id: string) {
     return this.documentService.findOne(+id);
   }
@@ -69,11 +91,15 @@ export class DocumentRequestController {
   ) {}
 
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('recruiter', 'admin')
   create(@Body() createDocumentRequestDto: CreateDocumentRequestDto) {
     return this.documentService.create(createDocumentRequestDto);
   }
 
   @Patch(':id')
+  @ApiBearerAuth()
   update(
     @Param('id') id: string,
     @Body() updateDocumentRequestDto: UpdateDocumentRequestDto,
@@ -82,6 +108,7 @@ export class DocumentRequestController {
   }
 
   @Post(':id/upload')
+  @ApiBearerAuth()
   @UseInterceptors(
     FileInterceptor('file', {
       fileFilter,
@@ -111,8 +138,20 @@ export class DocumentRequestController {
   }
 
   @Post(':id/approve')
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('recruiter', 'admin')
+  @ApiOperation({ summary: 'Approve a document request' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        approvedBy: { type: 'number', example: 1, description: 'ID do usuário que está aprovando' },
+      },
+      required: ['approvedBy'],
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Document request approved successfully' })
   async approve(
     @Param('id') id: string,
     @Body() body: { approvedBy: number },
@@ -123,12 +162,15 @@ export class DocumentRequestController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   remove(@Param('id') id: string) {
     return this.documentService.remove(+id);
   }
 }
 
 @ApiTags('Document Type')
+@ApiBearerAuth()
 @Controller('document-type')
 export class DocumentTypeController {
   constructor(private readonly documentService: DocumentTypeService) {}
@@ -158,6 +200,8 @@ export class DocumentTypeController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   remove(@Param('id') id: string) {
     return this.documentService.removeType(+id);
   }

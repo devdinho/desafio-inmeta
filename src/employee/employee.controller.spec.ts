@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmployeeController } from './employee.controller';
 import { EmployeeService } from './employee.service';
+import { DocumentRequestService } from '../document/document.service';
 import { ResponseEmployeeDto } from './dto/response-employee.dto';
 
 describe('EmployeeController (unit)', () => {
@@ -16,9 +17,16 @@ describe('EmployeeController (unit)', () => {
       remove: jest.fn().mockResolvedValue({ affected: 1 }),
     } as any;
 
+    const docServiceMock = {
+      getEmployeeDocumentStatus: jest.fn().mockResolvedValue({}),
+    } as Partial<Record<keyof DocumentRequestService, jest.Mock>>;
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [EmployeeController],
-      providers: [{ provide: EmployeeService, useValue: service }],
+      providers: [
+        { provide: EmployeeService, useValue: service },
+        { provide: DocumentRequestService, useValue: docServiceMock },
+      ],
     }).compile();
 
     controller = module.get<EmployeeController>(EmployeeController);

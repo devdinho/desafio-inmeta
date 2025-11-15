@@ -5,6 +5,7 @@ import {
   BeforeInsert,
   BeforeUpdate,
 } from 'typeorm';
+import { Exclude } from 'class-transformer';
 import * as bcrypt from 'bcrypt';
 
 @Entity()
@@ -18,6 +19,7 @@ export class User {
   @Column({ type: 'varchar', length: 15, unique: true })
   username: string;
 
+  @Exclude()
   @Column({ type: 'varchar', length: 255 })
   password: string;
 

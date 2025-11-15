@@ -74,8 +74,8 @@ export class AuthService {
     const user = await this.userRepo.findOne({ where: { id: payload.sub } });
     if (!user) throw new UnauthorizedException('Usuário não encontrado');
 
-    // find stored refresh tokens for user and verify
-    const stored = await this.refreshTokenRepo.find({ where: { user: { id: user.id } } as any });
+    // find stored refresh tokens for user and verify (only non-revoked)
+    const stored = await this.refreshTokenRepo.find({ where: { user: { id: user.id }, revoked: false } as any });
     let match: RefreshToken | undefined;
     for (const t of stored) {
       const ok = await bcrypt.compare(refreshToken, (t as any).tokenHash);
@@ -87,8 +87,9 @@ export class AuthService {
 
     if (!match) throw new UnauthorizedException('Refresh token não encontrado');
 
-    // remove the used token (rotation)
-    await this.refreshTokenRepo.remove(match as any);
+    // mark the used token revoked (rotation)
+    match.revoked = true as any;
+    await this.refreshTokenRepo.save(match as any);
 
     const newPayload = {
       sub: user.id,
@@ -106,7 +107,7 @@ export class AuthService {
 
     const newHashed = await bcrypt.hash(newRefreshToken, 10);
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await this.refreshTokenRepo.save({ tokenHash: newHashed, user, expiresAt });
+    await this.refreshTokenRepo.save({ tokenHash: newHashed, user, expiresAt, revoked: false } as any);
 
     return {
       access_token: accessToken,
@@ -114,7 +115,7 @@ export class AuthService {
     };
   }
 
-  async logout(refreshToken: string) {
+  async logout(refreshToken: string, userId?: number) {
     if (!refreshToken) throw new BadRequestException('refreshToken é obrigatório');
 
     let payload: any;
@@ -128,8 +129,13 @@ export class AuthService {
 
     const user = await this.userRepo.findOne({ where: { id: payload.sub } });
     if (!user) throw new UnauthorizedException('Usuário não encontrado');
+    // ensure the logout is requested by the same user that owns the access token (if provided)
+    if (userId && userId !== user.id) {
+      throw new UnauthorizedException('Token de acesso não corresponde ao refresh token');
+    }
 
-    const stored = await this.refreshTokenRepo.find({ where: { user: { id: user.id } } as any });
+    // find stored non-revoked tokens and mark matching one as revoked
+    const stored = await this.refreshTokenRepo.find({ where: { user: { id: user.id }, revoked: false } as any });
     let match: RefreshToken | undefined;
     for (const t of stored) {
       const ok = await bcrypt.compare(refreshToken, (t as any).tokenHash);
@@ -141,7 +147,8 @@ export class AuthService {
 
     if (!match) throw new UnauthorizedException('Refresh token não encontrado');
 
-    await this.refreshTokenRepo.remove(match as any);
+    match.revoked = true as any;
+    await this.refreshTokenRepo.save(match as any);
 
     return { revoked: true };
   }

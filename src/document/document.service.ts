@@ -137,6 +137,78 @@ export class DocumentRequestService {
     documentRequest.id = id;
     return await this.documentRequestRepository.delete(documentRequest.id);
   }
+
+  /**
+   * List pending document requests (not uploaded yet).
+   * Supports pagination and optional filters by employeeId and documentTypeId.
+   */
+  async findPending(options: {
+    page?: number;
+    limit?: number;
+    employeeId?: number;
+    documentTypeId?: number;
+  }) {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const limit = options.limit && options.limit > 0 ? options.limit : 20;
+
+    const qb = this.documentRequestRepository.createQueryBuilder('dr')
+      .leftJoinAndSelect('dr.employee', 'employee')
+      .leftJoinAndSelect('dr.documentType', 'documentType')
+      .where('dr.documentUrl IS NULL');
+
+    if (options.employeeId) {
+      qb.andWhere('employee.id = :employeeId', { employeeId: options.employeeId });
+    }
+
+    if (options.documentTypeId) {
+      qb.andWhere('documentType.id = :documentTypeId', { documentTypeId: options.documentTypeId });
+    }
+
+    const total = await qb.getCount();
+
+    const data = await qb
+      .orderBy('dr.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    return {
+      meta: { total, page, limit },
+      data,
+    };
+  }
+
+  /**
+   * Return a document status summary for a given employee.
+   * For each linked DocumentType, indicate sent/pending/approved and metadata.
+   */
+  async getEmployeeDocumentStatus(employeeId: number) {
+    const employee = await this.employeeRepository.findOne({ where: { id: employeeId } });
+    if (!employee) throw new NotFoundException('Employee not found');
+
+    const requests = await this.documentRequestRepository.find({
+      where: { employee: { id: employeeId } as any },
+      relations: ['documentType'],
+    });
+
+    const documents = requests.map((r) => {
+      const status = r.documentUrl ? (r.approved ? 'approved' : 'sent') : 'pending';
+      return {
+        documentRequestId: r.id,
+        documentTypeId: r.documentType.id,
+        documentTypeName: r.documentType.name,
+        status,
+        documentUrl: r.documentUrl,
+        uploadedAt: r.uploadedAt,
+        approvedAt: r.approvedAt,
+      };
+    });
+
+    return {
+      employee: { id: employee.id, name: employee.name },
+      documents,
+    };
+  }
 }
 
 @Injectable()

@@ -38,9 +38,10 @@ describe('AuthController', () => {
     expect(controller.me(user)).toEqual(user);
   });
 
-  it('should revoke refresh token on logout', async () => {
+  it('should revoke refresh token on logout (requires user)', async () => {
     (mockAuthService.logout as jest.Mock).mockResolvedValue({ revoked: true });
-    await expect(controller.logout({ refreshToken: 'rt' })).resolves.toEqual({ revoked: true });
-    expect(mockAuthService.logout).toHaveBeenCalledWith('rt');
+    const user = { id: 1 } as any;
+    await expect(controller.logout({ refreshToken: 'rt' }, user)).resolves.toEqual({ revoked: true });
+    expect(mockAuthService.logout).toHaveBeenCalledWith('rt', 1);
   });
 });

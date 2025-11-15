@@ -47,12 +47,11 @@ describe('AuthService', () => {
     mockUserRepo.findOne.mockResolvedValue(user);
 
     const hashed = await bcrypt.hash('valid-refresh', 10);
-    mockRefreshRepo.find.mockResolvedValue([{ id: 5, tokenHash: hashed, user }]);
-    mockRefreshRepo.remove.mockResolvedValue(undefined);
+    mockRefreshRepo.find.mockResolvedValue([{ id: 5, tokenHash: hashed, user, revoked: false }]);
+    mockRefreshRepo.save.mockResolvedValue(undefined);
 
     const res = await service.refresh('valid-refresh');
 
-    expect(mockRefreshRepo.remove).toHaveBeenCalled();
     expect(mockRefreshRepo.save).toHaveBeenCalled();
     expect(res).toHaveProperty('access_token', 'access-token');
     expect(res).toHaveProperty('refresh_token', 'refresh-token');
@@ -72,11 +71,12 @@ describe('AuthService', () => {
     mockUserRepo.findOne.mockResolvedValue(user);
 
     const hashed = await bcrypt.hash('to-remove', 10);
-    mockRefreshRepo.find.mockResolvedValue([{ id: 9, tokenHash: hashed, user }]);
+    mockRefreshRepo.find.mockResolvedValue([{ id: 9, tokenHash: hashed, user, revoked: false }]);
     mockRefreshRepo.remove.mockResolvedValue(undefined);
+    mockRefreshRepo.save.mockResolvedValue(undefined);
 
-    const res = await service.logout('to-remove');
-    expect(mockRefreshRepo.remove).toHaveBeenCalled();
+    const res = await service.logout('to-remove', 3);
+    expect(mockRefreshRepo.save).toHaveBeenCalled();
     expect(res).toEqual({ revoked: true });
   });
 
@@ -85,6 +85,6 @@ describe('AuthService', () => {
     mockUserRepo.findOne.mockResolvedValue({ id: 100 } as any);
     mockRefreshRepo.find.mockResolvedValue([]);
 
-    await expect(service.logout('nope')).rejects.toThrow();
+    await expect(service.logout('nope', 100)).rejects.toThrow();
   });
 });

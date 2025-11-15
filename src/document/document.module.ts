@@ -23,5 +23,6 @@ import { Employee } from '../employee/entities/employee.entity';
   ],
   controllers: [DocumentRequestController, DocumentTypeController],
   providers: [DocumentRequestService, DocumentTypeService],
+  exports: [DocumentRequestService, DocumentTypeService],
 })
 export class DocumentModule {}

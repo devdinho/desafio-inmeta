@@ -8,16 +8,32 @@ import {
   Delete,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { plainToInstance } from 'class-transformer';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { EmployeeService } from './employee.service';
+import { DocumentRequestService } from '../document/document.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { ResponseEmployeeDto } from './dto/response-employee.dto';
 
+@ApiTags('Employee')
+@ApiBearerAuth()
 @Controller('employee')
 export class EmployeeController {
-  constructor(private readonly employeeService: EmployeeService) {}
+  constructor(
+    private readonly employeeService: EmployeeService,
+    private readonly documentRequestService: DocumentRequestService,
+  ) {}
+
+  @Get(':id/document-status')
+  async documentStatus(@Param('id') id: string) {
+    return this.documentRequestService.getEmployeeDocumentStatus(+id);
+  }
 
   @Post()
   async create(
@@ -63,6 +79,8 @@ export class EmployeeController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   remove(@Param('id') id: string) {
     return this.employeeService.remove(+id);
   }
