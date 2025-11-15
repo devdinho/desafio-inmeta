@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
 
@@ -38,7 +42,10 @@ export class EmployeeService {
     return this.employeeRepository.findOneBy({ id });
   }
 
-  async update(id: number, updateEmployeeDto: UpdateEmployeeDto): Promise<Employee> {
+  async update(
+    id: number,
+    updateEmployeeDto: UpdateEmployeeDto,
+  ): Promise<Employee> {
     const employee = await this.employeeRepository.findOne({
       where: { id },
       relations: ['user'],
@@ -71,7 +78,6 @@ export class EmployeeService {
 
     return this.employeeRepository.save(employee);
   }
-
 
   async remove(id: number): Promise<DeleteResult> {
     const employee = await this.employeeRepository.findOneBy({ id });

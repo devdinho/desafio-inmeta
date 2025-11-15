@@ -7,7 +7,6 @@ import {
 import { Expose } from 'class-transformer';
 
 export class ResponseUserDto {
-
   @Expose()
   @IsNotEmpty()
   @IsEmail(

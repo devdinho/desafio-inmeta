@@ -11,7 +11,7 @@ import {
 } from 'typeorm';
 
 import { User } from '../../user/entities/user.entity';
-import { DocumentRequest } from 'src/document/entities/document-request.entity';
+import { DocumentRequest } from '../../document/entities/document-request.entity';
 
 @Entity()
 export class Employee {
@@ -42,5 +42,4 @@ export class Employee {
 
   @OneToMany(() => DocumentRequest, (dr) => dr.approvedBy)
   approvedDocumentRequests: DocumentRequest[];
-
 }

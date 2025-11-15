@@ -21,7 +21,7 @@ export class EmployeeController {
 
   @Post()
   async create(
-    @Body() createEmployeeDto: CreateEmployeeDto
+    @Body() createEmployeeDto: CreateEmployeeDto,
   ): Promise<ResponseEmployeeDto> {
     const employee = await this.employeeService.create(createEmployeeDto);
 
@@ -34,7 +34,7 @@ export class EmployeeController {
   async findAll(): Promise<ResponseEmployeeDto[]> {
     const employees = await this.employeeService.findAll();
 
-    return employees.map(employee =>
+    return employees.map((employee) =>
       plainToInstance(ResponseEmployeeDto, employee, {
         excludeExtraneousValues: true,
       }),

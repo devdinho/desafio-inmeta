@@ -1,4 +1,9 @@
-import { Injectable, ConflictException, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeleteResult, Repository } from 'typeorm';
@@ -10,7 +15,7 @@ import { UpdateDocumentTypeDto } from './dto/update-document-type.dto';
 
 import { DocumentRequest } from './entities/document-request.entity';
 import { DocumentType } from './entities/document-type.entity';
-import { Employee } from 'src/employee/entities/employee.entity';
+import { Employee } from '../employee/entities/employee.entity';
 
 @Injectable()
 export class DocumentRequestService {
@@ -26,8 +31,7 @@ export class DocumentRequestService {
   async create(
     createDocumentRequestDto: CreateDocumentRequestDto,
   ): Promise<DocumentRequest[]> {
-
-    let { employee, documentType } = createDocumentRequestDto;
+    const { employee, documentType } = createDocumentRequestDto;
 
     const employeeId = typeof employee === 'object' ? employee.id : employee;
 
@@ -40,13 +44,13 @@ export class DocumentRequestService {
     }
 
     const documentTypeIds = Array.isArray(documentType)
-      ? documentType.map(dt => (typeof dt === 'object' ? dt.id : dt))
+      ? documentType.map((dt) => (typeof dt === 'object' ? dt.id : dt))
       : [typeof documentType === 'object' ? documentType.id : documentType];
 
     const createdRequests: DocumentRequest[] = [];
 
-    for (let typeId of documentTypeIds) {
-      let docType = await this.documentTypeRepository.findOne({
+    for (const typeId of documentTypeIds) {
+      const docType = await this.documentTypeRepository.findOne({
         where: { id: typeId },
       });
 
@@ -54,7 +58,7 @@ export class DocumentRequestService {
         throw new NotFoundException(`DocumentType ${typeId} not found`);
       }
 
-      let exists = await this.documentRequestRepository.findOne({
+      const exists = await this.documentRequestRepository.findOne({
         where: {
           employee: { id: employeeId },
           documentType: { id: typeId },
@@ -78,7 +82,6 @@ export class DocumentRequestService {
     return createdRequests;
   }
 
-
   findAll(): Promise<DocumentRequest[]> {
     return this.documentRequestRepository.find();
   }
@@ -87,7 +90,7 @@ export class DocumentRequestService {
     const documentRequest = await this.documentRequestRepository.findOneBy({
       id,
     });
-    if (!documentRequest) throw new Error('Document Request not found');
+    if (!documentRequest) throw new NotFoundException('Document Request not found');
     return documentRequest;
   }
 
@@ -98,7 +101,7 @@ export class DocumentRequestService {
     const documentRequest = await this.documentRequestRepository.findOneBy({
       id,
     });
-    if (!documentRequest) throw new Error('Document Request not found');
+    if (!documentRequest) throw new NotFoundException('Document Request not found');
     documentRequest.approved =
       updateDocumentRequestDto.approved ?? documentRequest.approved;
 
@@ -112,6 +115,17 @@ export class DocumentRequestService {
     documentRequest.documentUrl =
       updateDocumentRequestDto.documentUrl ?? documentRequest.documentUrl;
 
+    if ('uploadedBy' in updateDocumentRequestDto && updateDocumentRequestDto.uploadedBy) {
+      documentRequest.uploadedBy = updateDocumentRequestDto.uploadedBy as any;
+    }
+
+    if (
+      'uploadedAt' in updateDocumentRequestDto &&
+      typeof updateDocumentRequestDto.uploadedAt === 'string'
+    ) {
+      documentRequest.uploadedAt = new Date(updateDocumentRequestDto.uploadedAt);
+    }
+
     return await this.documentRequestRepository.save(documentRequest);
   }
 
@@ -119,7 +133,7 @@ export class DocumentRequestService {
     const documentRequest = await this.documentRequestRepository.findOneBy({
       id,
     });
-    if (!documentRequest) throw new Error('Document Request not found');
+    if (!documentRequest) throw new NotFoundException('Document Request not found');
     documentRequest.id = id;
     return await this.documentRequestRepository.delete(documentRequest.id);
   }
@@ -137,7 +151,9 @@ export class DocumentTypeService {
       where: { name: createDocumentTypeDto.name },
     });
     if (existingType) {
-      throw new ConflictException('A document type with this name already exists.');
+      throw new ConflictException(
+        'A document type with this name already exists.',
+      );
     }
 
     const documentType = this.documentTypeRepository.create({
@@ -154,7 +170,7 @@ export class DocumentTypeService {
 
   async findOneType(id: number): Promise<DocumentType | null> {
     const documentType = await this.documentTypeRepository.findOneBy({ id });
-    if (!documentType) throw new Error('Document Type not found');
+    if (!documentType) throw new NotFoundException('Document Type not found');
     return documentType;
   }
 
@@ -163,7 +179,7 @@ export class DocumentTypeService {
     updateDocumentTypeDto: UpdateDocumentTypeDto,
   ): Promise<DocumentType> {
     const documentType = await this.documentTypeRepository.findOneBy({ id });
-    if (!documentType) throw new Error('Document Type not found');
+    if (!documentType) throw new NotFoundException('Document Type not found');
     documentType.name = updateDocumentTypeDto.name ?? documentType.name;
     documentType.description =
       updateDocumentTypeDto.description ?? documentType.description;
@@ -171,7 +187,9 @@ export class DocumentTypeService {
   }
 
   async removeType(id: number) {
-    const documentType = await this.documentTypeRepository.findOne({ where: { id } });
+    const documentType = await this.documentTypeRepository.findOne({
+      where: { id },
+    });
 
     if (!documentType) {
       throw new NotFoundException('Document type not found');
@@ -184,16 +202,13 @@ export class DocumentTypeService {
         detail: 'Document Type deleted successfully',
         status: 204,
       };
-
-    } catch (error) {
-      // Violação de FK
-      if (error.code === '23503') {
+    } catch (error: unknown) {
+      const err = error as { code?: string } | null;
+      if (err && err.code === '23503') {
         throw new ConflictException(
-          'Can\'t delete: there are requests linked to this document type.',
+          "Can't delete: there are requests linked to this document type.",
         );
       }
-
-      // Other error
       throw new InternalServerErrorException('Error deleting document type.');
     }
   }

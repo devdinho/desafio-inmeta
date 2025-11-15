@@ -1,10 +1,15 @@
-import { IsNotEmpty, IsString, Matches, MinLength, ValidateNested } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  Matches,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { ResponseUserDto } from '../../user/dto/response-user.dto';
 
 export class ResponseEmployeeDto {
-
   @Expose()
   id: number;
 

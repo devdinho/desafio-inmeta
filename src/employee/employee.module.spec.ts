@@ -1,12 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EmployeeModule } from './employee.module';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { EmployeeController } from './employee.controller';
+import { EmployeeService } from './employee.service';
+import { Employee } from './entities/employee.entity';
+import { User } from '../user/entities/user.entity';
 
-describe('EmployeeModule', () => {
+describe('EmployeeModule (shallow)', () => {
   let module: TestingModule;
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
-      imports: [EmployeeModule],
+      controllers: [EmployeeController],
+      providers: [
+        EmployeeService,
+        { provide: getRepositoryToken(Employee), useValue: {} },
+        { provide: getRepositoryToken(User), useValue: {} },
+      ],
     }).compile();
   });
 

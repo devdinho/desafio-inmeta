@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    environment:
+      PORT: ${PORT:-3014}
+    ports:
+      - "3014:3014"
+    restart: on-failure

@@ -9,11 +9,15 @@ async function bootstrap() {
     .setTitle('Desafio INMETA')
     .setDescription('API description')
     .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'access-token',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('swagger', app, document);
 
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(`Application is running on PORT: ${process.env.PORT ?? 3000}`);
+  await app.listen(process.env.PORT ?? 3014);
+  console.log(`Application is running on PORT: ${process.env.PORT ?? 3014}`);
 }
-bootstrap();
+void bootstrap();

@@ -9,6 +9,9 @@ export class CreateDocumentTypeDto {
 
   @IsString()
   @IsNotEmpty()
-  @ApiProperty({ example: 'Carteira Nacional de Habilitação', description: 'Description of the document type' })
+  @ApiProperty({
+    example: 'Carteira Nacional de Habilitação',
+    description: 'Description of the document type',
+  })
   description: string;
 }

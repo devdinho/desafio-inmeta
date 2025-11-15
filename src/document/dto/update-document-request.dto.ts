@@ -14,10 +14,27 @@ export class UpdateDocumentRequestDto extends PartialType(
   approvedBy?: Employee;
 
   @IsString()
-  @ApiProperty({ example: '2024-04-27T12:34:56Z', description: 'Approval date and time' })
+  @ApiProperty({
+    example: '2024-04-27T12:34:56Z',
+    description: 'Approval date and time',
+  })
   approvedAt?: string;
 
   @IsString()
-  @ApiProperty({ example: 'http://example.com/document.pdf', description: 'URL of the document' })
+  @ApiProperty({
+    example: 'http://example.com/document.pdf',
+    description: 'URL of the document',
+  })
   documentUrl?: string;
+
+  @IsNumber()
+  @ApiProperty({ example: 1, description: 'ID of the employee who uploaded' })
+  uploadedBy?: Employee;
+
+  @IsString()
+  @ApiProperty({
+    example: '2024-04-27T12:34:56Z',
+    description: 'Upload date and time',
+  })
+  uploadedAt?: string;
 }

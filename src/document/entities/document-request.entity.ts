@@ -11,22 +11,38 @@ export class DocumentRequest {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Employee, (employee) => employee.documentRequests, { eager: true })
+  @ManyToOne(() => Employee, (employee) => employee.documentRequests, {
+    eager: true,
+  })
   employee: Employee;
 
-  @ManyToOne(() => DocumentType, (documentType) => documentType.documentRequests, { eager: true })
+  @ManyToOne(
+    () => DocumentType,
+    (documentType) => documentType.documentRequests,
+    { eager: true },
+  )
   documentType: DocumentType;
-
 
   @Column({ type: 'boolean', default: false })
   approved: boolean;
 
-  @ManyToOne(() => Employee, (approvedBy) => approvedBy.approvedDocumentRequests, { eager: true })
+  @ManyToOne(
+    () => Employee,
+    (approvedBy) => approvedBy.approvedDocumentRequests,
+    { eager: true },
+  )
   @JoinColumn()
   approvedBy: Employee;
 
+  @ManyToOne(() => Employee, { eager: true, nullable: true })
+  @JoinColumn()
+  uploadedBy: Employee;
+
   @Column({ type: 'timestamp', nullable: true })
   approvedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  uploadedAt: Date;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   documentUrl: string;
